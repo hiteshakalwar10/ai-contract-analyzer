@@ -1,0 +1,12 @@
+streamlit
+langchain
+langchain-community
+langchain-groq
+langchain-text-splitters
+langchain-core
+faiss-cpu
+PyMuPDF
+pydantic
+python-docx
+reportlab
+sentence-transformers
