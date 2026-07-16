@@ -179,7 +179,7 @@ with st.sidebar:
     analyze_btn = st.button("🔍 Analyze Contract", use_container_width=True)
 
 st.markdown("## AI Contract Analyzer")
-st.caption("Upload a contract, get structured analysis, and chat with it using RAG.")
+st.caption("Upload a contract, get structured analysis and chat with it using RAG.")
 
 if analyze_btn:
     if st.session_state.pdf_path is None:
