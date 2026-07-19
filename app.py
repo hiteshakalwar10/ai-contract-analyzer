@@ -4,20 +4,13 @@ import fitz
 import streamlit as st
 from datetime import datetime
 from langchain_groq import ChatGroq
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_core.documents import Document
 from docx import Document as DocxDocument
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from pydantic import BaseModel, Field
-from typing import List
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("outputs", exist_ok=True)
-os.makedirs("vectorstore", exist_ok=True)
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
@@ -27,10 +20,6 @@ st.set_page_config(page_title="AI Contract Analyzer", layout="wide")
 def get_llm():
     return ChatGroq(groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile", temperature=0)
 
-@st.cache_resource
-def get_embeddings():
-    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
 def extract_pdf_text(pdf_path):
     text = ""
     doc = fitz.open(pdf_path)
@@ -38,21 +27,6 @@ def extract_pdf_text(pdf_path):
         text += page.get_text()
     doc.close()
     return text
-
-def chunk_text(text):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=200)
-    chunks = splitter.split_text(text)
-    return [Document(page_content=c) for c in chunks]
-
-def build_vectorstore(docs):
-    embeddings = get_embeddings()
-    vectorstore = FAISS.from_documents(docs, embeddings)
-    vectorstore.save_local("vectorstore/contract_index")
-    return vectorstore
-
-def load_vectorstore():
-    embeddings = get_embeddings()
-    return FAISS.load_local("vectorstore/contract_index", embeddings, allow_dangerous_deserialization=True)
 
 def run_prompt(prompt):
     llm = get_llm()
@@ -95,20 +69,6 @@ Contract text:
             "risk_analysis": []
         }
     return data
-
-def answer_question(vectorstore, question):
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
-    relevant_docs = retriever.invoke(question)
-    context = "\n\n".join([d.page_content for d in relevant_docs])
-    prompt = f"""
-Answer the question using ONLY the context below from the contract. If the answer is not present, say "This information is not present in the contract."
-
-Context:
-{context}
-
-Question: {question}
-"""
-    return run_prompt(prompt)
 
 def generate_pdf_report(data, output_path):
     doc = SimpleDocTemplate(output_path, pagesize=A4)
@@ -158,10 +118,6 @@ def generate_docx_report(data, output_path):
 
 if "analysis_data" not in st.session_state:
     st.session_state.analysis_data = None
-if "vectorstore" not in st.session_state:
-    st.session_state.vectorstore = None
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
 if "pdf_path" not in st.session_state:
     st.session_state.pdf_path = None
 
@@ -179,7 +135,7 @@ with st.sidebar:
     analyze_btn = st.button("🔍 Analyze Contract", use_container_width=True)
 
 st.markdown("## AI Contract Analyzer")
-st.caption("Upload a contract, get structured analysis and chat with it using RAG.")
+st.caption("Upload a contract and get a structured AI-powered analysis.")
 
 if analyze_btn:
     if st.session_state.pdf_path is None:
@@ -188,18 +144,13 @@ if analyze_btn:
         with st.spinner("Extracting text..."):
             full_text = extract_pdf_text(st.session_state.pdf_path)
 
-        with st.spinner("Chunking and building vector store..."):
-            docs = chunk_text(full_text)
-            vectorstore = build_vectorstore(docs)
-            st.session_state.vectorstore = vectorstore
-
         with st.spinner("Running structured analysis..."):
             data = analyze_contract(full_text)
             st.session_state.analysis_data = data
 
         st.success("Analysis complete")
 
-tab1, tab2, tab3 = st.tabs(["📊 Analysis", "💬 Chat with Contract", "⬇️ Download Reports"])
+tab1, tab2 = st.tabs(["📊 Analysis", "⬇️ Download Reports"])
 
 with tab1:
     data = st.session_state.analysis_data
@@ -235,23 +186,8 @@ with tab1:
             for r in data.get("risk_analysis", []):
                 st.write(f"- ⚠️ {r}")
 
+
 with tab2:
-    if st.session_state.vectorstore is None:
-        st.info("Analyze a contract first to enable chat.")
-    else:
-        for role, msg in st.session_state.chat_history:
-            with st.chat_message(role):
-                st.write(msg)
-
-        user_question = st.chat_input("Ask something about the contract...")
-        if user_question:
-            st.session_state.chat_history.append(("user", user_question))
-            with st.spinner("Thinking..."):
-                answer = answer_question(st.session_state.vectorstore, user_question)
-            st.session_state.chat_history.append(("assistant", answer))
-            st.rerun()
-
-with tab3:
     if st.session_state.analysis_data is None:
         st.info("Analyze a contract first to generate reports.")
     else:
