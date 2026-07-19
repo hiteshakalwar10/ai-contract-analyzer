@@ -1,5 +1,4 @@
 uploads/
 outputs/
-vectorstore/
 __pycache__/
 *.pyc
