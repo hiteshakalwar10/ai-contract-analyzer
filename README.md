@@ -45,4 +45,4 @@ https://ai-contract-analyzer-5z6o9evc3dso4rwjectfyx.streamlit.app/
 
 ## Note
 
-Built as a portfolio project to explore RAG pipelines and structured extraction from unstructured legal documents. Not meant for real legal use - always have an actual lawyer review real contracts.
+Built as a portfolio project to explore LLM-powered structured extraction and analysis of unstructured legal documents. Not meant for real legal use — always have an actual lawyer review real contracts.
