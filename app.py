@@ -18,8 +18,8 @@ st.set_page_config(page_title="AI Contract Analyzer", layout="wide")
 
 @st.cache_resource
 def get_llm():
-    return ChatGroq(groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile", temperature=0)
-
+    return ChatGroq(groq_api_key=GROQ_API_KEY, model_name="openai/gpt-oss-120b", temperature=0)
+    
 def extract_pdf_text(pdf_path):
     text = ""
     doc = fitz.open(pdf_path)
