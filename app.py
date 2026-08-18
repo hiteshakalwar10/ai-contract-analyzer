@@ -77,6 +77,14 @@ def generate_pdf_report(data, output_path):
     story.append(Paragraph("Contract Analysis Report", styles["Title"]))
     story.append(Spacer(1, 12))
 
+    def clean(text):
+        if not isinstance(text, str):
+            return text
+        text = text.replace("₹", "Rs. ")
+        text = text.replace("–", "-").replace("—", "-")
+        text = text.encode("ascii", "ignore").decode()
+        return text
+
     sections = [
         ("Executive Summary", data.get("executive_summary", "")),
         ("Parties Involved", ", ".join(data.get("parties_involved", []))),
